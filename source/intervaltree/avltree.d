@@ -5,8 +5,7 @@ klib (kavl.h) and the derived code remains MIT licensed.
 
 Author: James S. Blachly, MD <james.blachly@gmail.com>
 Copyright: Copyright (c) 2019 James Blachly
-License for personal, academic, and noncomercial use: Apache 2.0
-License for commercial use: Negotiable; contact author
+License: MIT
 */
 module intervaltree.avltree;
 
