@@ -1,0 +1,11 @@
+{
+	"name": "intervaltree",
+	"description": "Interval Tree implementations.",
+    "authors": ["James S Blachly, MD"],
+    "copyright": "Copyright 2019 James Blachly",
+	"homepage": "http://github.com/blachlylab/intervaltree",
+	"license": "MIT",
+	"dependencies": {
+		"emsi_containers": "~>0.8.0-alpha.12"
+	}
+}
