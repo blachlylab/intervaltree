@@ -454,15 +454,18 @@ struct IntervalSplayTree(IntervalType)
         so that we can from externally query with any type of interval object
 
         TODO: benchmark return Node[]
+        TODO: benchmark return Node** and out count vs non-GC container
     */
     nothrow
-    Node*[] findOverlapsWith(T)(T qinterval)
+    UnrolledList!(Node *) findOverlapsWith(T)(T qinterval)
+    //Node*[] findOverlapsWith(T)(T qinterval)
     if (__traits(hasMember, T, "start") &&
         __traits(hasMember, T, "end"))
     {
-        Node*[] ret;
+//        Node*[] ret;
 //        ret.reserve(7);
         UnrolledList!(Node *) stack;
+        UnrolledList!(Node *) ret;
 
         Node* current;
 
@@ -489,9 +492,16 @@ struct IntervalSplayTree(IntervalType)
             if (current.right) stack.insertBack(current.right);
         }
 
+/* when Node*[]
+        if (ret.length == 0) return ret;
         if (ret.length == 1) splay(ret[0]);
         // TODO else len > 1 ??? 
+        else splay(ret[0]);
 
+        return ret;
+*/
+        if (ret.length > 0)
+            splay(ret.front());
         return ret;
     }
 

@@ -23,3 +23,4 @@ docs/
 
 # Code coverage
 *.lst
+.vscode/c_cpp_properties.json
