@@ -4,12 +4,13 @@
 */
 module intervaltree.cgranges;
 
+import core.stdc.stdint;
 import std.bitmanip;
 import std.string : toStringz;
 
 debug import std.stdio;
 
-
+/** Implicit Interval Tree */
 struct IITree(IntervalType)
 if (__traits(hasMember, IntervalType, "start") &&
     __traits(hasMember, IntervalType, "end"))
@@ -92,8 +93,6 @@ extern(C):
    CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
    SOFTWARE.
 */
-
-import core.stdc.stdint;
 
 struct cr_ctg_t {    // a contig
 	char *name;     // name of the contig
