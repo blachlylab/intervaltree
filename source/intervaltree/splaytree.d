@@ -502,8 +502,11 @@ struct IntervalSplayTree(IntervalType)
 
             debug
             {
-                if (s > 1) assert(0,
-                    "stack overflow :-( Please post an issue at https://github.com/blachlylab/intervaltree");
+                if (s > 64) {
+                    import core.stdc.stdio : stderr, fprintf;
+                    fprintf(stderr, "FAIL maxs: %d", maxs);
+                    assert(0, "stack overflow :-( Please post an issue at https://github.com/blachlylab/intervaltree");
+                }
                 if (s > maxs) maxs = s;
             }
             
@@ -511,7 +514,9 @@ struct IntervalSplayTree(IntervalType)
 
         debug
         {
-            // Observations: Max depth observed, in real world bedcov application is ~13
+            // Observations:
+            // Max depth observed, in real world bedcov application is ~13
+            // Max depth observed, in real world liftover application is 18 (outlier), ~12-14 max, mode 2!
             import core.stdc.stdio : stderr, fprintf;
             fprintf(stderr, "maxs: %d\n", maxs);
         }
