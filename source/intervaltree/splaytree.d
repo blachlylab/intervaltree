@@ -462,18 +462,25 @@ struct IntervalSplayTree(IntervalType)
     if (__traits(hasMember, T, "start") &&
         __traits(hasMember, T, "end"))
     {
+        assert(0, "FAIL");
 //        Node*[] ret;
 //        ret.reserve(7);
-        UnrolledList!(Node *) stack;
+        Node*[64] stack = void;
+        int s;
+        debug int maxs;
+        //UnrolledList!(Node *) stack;
         UnrolledList!(Node *) ret;
 
         Node* current;
 
-        stack.insertBack(this.root);
+        //stack.insertBack(this.root);
+        stack[s++] = this.root;
 
-        while(stack.length >= 1)
+        //while(stack.length >= 1)
+        while(s >= 1)
         {
-            current = stack.moveBack();
+            //current = stack.moveBack();
+            current = stack[--s];
 
             // if query interval lies to the right of current tree, skip  
             if (qinterval.start >= current.max) continue;
@@ -482,14 +489,33 @@ struct IntervalSplayTree(IntervalType)
             // look in the left subtree
             if (qinterval.end <= current.interval.start)
             {
-                if (current.left) stack.insertBack(current.left);
+                //if (current.left) stack.insertBack(current.left);
+                if (current.left) stack[s++] = current.left;
                 continue;
             }
 
             // if current node overlaps query interval, save it and search its children
             if (current.interval.overlaps(qinterval)) ret ~= current;
-            if (current.left) stack.insertBack(current.left);
-            if (current.right) stack.insertBack(current.right);
+            //if (current.left) stack.insertBack(current.left);
+            if (current.left) stack[s++] = current.left;
+            //if (current.right) stack.insertBack(current.right);
+            if (current.right) stack[s++] = current.right;
+
+            assert(0, ":-?");
+            debug
+            {
+                if (s > 1) assert(0,
+                    "stack overflow :-( Please post an issue at https://github.com/blachlylab/intervaltree");
+                if (s > maxs) maxs = s;
+            }
+            
+        }
+
+        debug
+        {
+            // Observations: Max depth observed, in real world bedcov application is ~13
+            import core.stdc.stdio : stderr, fprintf;
+            fprintf(stderr, "maxs: %d\n", maxs);
         }
 
 /* when Node*[]
