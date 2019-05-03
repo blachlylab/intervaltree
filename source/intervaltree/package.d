@@ -9,6 +9,7 @@ struct BasicInterval
     int end;    /// zero-based half-open
 
     /// override the <, <=, >, >= operators; we'll use compiler generated default opEqual
+    @safe
     @nogc nothrow
     int opCmp(const ref BasicInterval other) const 
     {		
@@ -68,15 +69,6 @@ if (__traits(hasMember, IntervalType1, "start") &&
     // DMD cannot inline this
     version(LDC) pragma(inline, true);
     version(GDC) pragma(inline, true);
-    // int1   =====    =======
-    // int2 =======  =======
-    if (int2.start <= int1.start &&  int1.start < int2.end) return true;
-
-    // int1  =======  =======
-    // int2   ===      =======
-    else if (int1.start <= int2.start && int2.start < int1.end) return true;
-
-    // int1  =====        |       =====
-    // int2       =====   |  =====
+    if (int2.start < int1.end && int1.start < int2.end) return true;
     else return false;
 }
