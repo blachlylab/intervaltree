@@ -462,7 +462,6 @@ struct IntervalSplayTree(IntervalType)
     if (__traits(hasMember, T, "start") &&
         __traits(hasMember, T, "end"))
     {
-        assert(0, "FAIL");
 //        Node*[] ret;
 //        ret.reserve(7);
         Node*[64] stack = void;
@@ -501,7 +500,6 @@ struct IntervalSplayTree(IntervalType)
             //if (current.right) stack.insertBack(current.right);
             if (current.right) stack[s++] = current.right;
 
-            assert(0, ":-?");
             debug
             {
                 if (s > 1) assert(0,
