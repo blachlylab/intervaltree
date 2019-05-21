@@ -38,6 +38,7 @@ typedef struct {    // an interval
 	uint64_t x;     // prior to cr_index(), x = ctg_id<<32|start_pos; after: x = start_pos<<32|end_pos
 	uint32_t y:31, rev:1;
 	int32_t label;  // NOT used
+    void * data;    // JSB: data payload
 } cr_intv_t;
 
 typedef struct {
@@ -65,8 +66,8 @@ cgranges_t *cr_init(void);
 // Deallocate
 void cr_destroy(cgranges_t *cr);
 
-// Add an interval
-cr_intv_t *cr_add(cgranges_t *cr, const char *ctg, int32_t st, int32_t en, int32_t label_int);
+// Add an interval (JSB: data param)
+cr_intv_t *cr_add(cgranges_t *cr, const char *ctg, int32_t st, int32_t en, int32_t label_int, void * data);
 
 // Sort and index intervals
 void cr_index(cgranges_t *cr);

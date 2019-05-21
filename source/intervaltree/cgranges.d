@@ -1,8 +1,14 @@
-/** Interval Tree backed by Implicit Augmented Interval Tree, by lh3
+/** Interval Tree backed by Implicit Augmented Interval Tree, by Heng Li
 
     See: https://github.com/lh3/cgranges/
+
+    Wrapper copyright: Copyright 2019 James S Blachly, MD
+    Wrapper license: MIT
 */
 module intervaltree.cgranges;
+
+import core.stdc.stdlib;    // malloc
+import core.stdc.string;    // memcpy
 
 import core.stdc.stdint;
 import std.bitmanip;
@@ -15,10 +21,8 @@ struct IITree(IntervalType)
 if (__traits(hasMember, IntervalType, "start") &&
     __traits(hasMember, IntervalType, "end"))
 {
-    cgranges_t* cr; /// encapsulated range
-    debug {
-        bool indexed;   /// in debug mode, make sure the IITree is indexed before query
-    }
+    cgranges_t* cr;     /// encapsulated range
+    debug bool indexed; /// ensure the IITree is indexed before query
 
     invariant
     {
@@ -29,24 +33,53 @@ if (__traits(hasMember, IntervalType, "start") &&
         if (this.cr !is null)
             cr_destroy(this.cr);
     }
+    @disable this(this);    /// if reenable, must add refcounting and check to destructor
 
+    alias add = insert; // prior API 
+
+    /// Insert interval for contig
     ///
-    cr_intv_t* add(string contig, IntervalType i)
+    /// Note this differs from the other trees in the package in inclusion of "contig" parameter,
+    /// because underlying cgranges has built-in hashmap and essentially stores multiple trees.
+    /// Passing a \0-terminated C string contig will be faster than passing a D string or char[],
+    /// due to the need to call toStringz before calling the C API.
+    ///
+    /// last param "label" of cr_add not used by cgranges as of 2019-05-04
+    cr_intv_t* insert(const(char)[] contig, IntervalType i)
     {
-        return cr_add(this.cr, toStringz(contig), i.start, i.end, 0);
+        IntervalType* iheap = cast(IntervalType *) malloc(IntervalType.sizeof);
+        memcpy(iheap, &i, IntervalType.sizeof);
+        return cr_add(this.cr, toStringz(contig), i.start, i.end, 0, &iheap);
+    }
+    /// ditto
+    cr_intv_t* insert(const(char)* contig, IntervalType i)
+    {
+        // WIP 2019-05-20, &i is local stack address :-O
+        // 2019-05-21, if use GC would have to register the memory, just use malloc instead
+        // TODO free() in ~this
+        IntervalType* iheap = cast(IntervalType *) malloc(IntervalType.sizeof);
+        memcpy(iheap, &i, IntervalType.sizeof);
+        return cr_add(this.cr, contig, i.start, i.end, 0, iheap);
     }
 
-    /// 
+    /// Index the data structure -- required after all inserts completed, before query
+    @nogc nothrow
     void index()
     {
         cr_index(this.cr);
         debug { this.indexed = true; }
     }
 
-    /// 
-    cr_intv_t*[] findOverlapsWith(T)(string contig, T qinterval)
+    ///
+    auto findOverlapsWith(T)(string contig, T qinterval)
     if (__traits(hasMember, T, "start") &&
     __traits(hasMember, T, "end"))
+    {
+        pragma(inline, true);
+        return findOverlapsWith(toStringz(contig), qinterval.start, qinterval.end);
+    }
+    /// 
+    const(cr_intv_t)[] findOverlapsWith(const(char)* contig, int start, int end)
     {
         debug
         {
@@ -58,21 +91,25 @@ if (__traits(hasMember, IntervalType, "start") &&
 
         int64_t *b;
         int64_t m_b;
-        const auto n_b = cr_overlap(this.cr, toStringz(contig), qinterval.start, qinterval.end, &b, &m_b);
+        const auto n_b = cr_overlap(this.cr, contig, start, end, &b, &m_b);
+        if (!n_b) return [];
 
-        cr_intv_t*[] ret;
+        /+ WORKS
+        cr_intv_t[] ret;
         ret.length = n_b;
         for(int i; i<n_b; i++)
         {
-            ret[i] = &this.cr.r[b[i]];
-        }
-
+            ret[i] = this.cr.r[b[i]];
+        }+/
+        
+        const(cr_intv_t)[] ret = this.cr.r[b[0] .. (b[0] + n_b)];
         return ret;
     }
 }
 
 extern(C):
-
+@nogc:
+nothrow:
 /* The MIT License
    Copyright (c) 2019 Dana-Farber Cancer Institute
    Permission is hereby granted, free of charge, to any person obtaining
@@ -94,39 +131,54 @@ extern(C):
    SOFTWARE.
 */
 
-struct cr_ctg_t {    // a contig
-	char *name;     // name of the contig
-	int32_t len;    // max length seen in data
-	int32_t root_k;
-	int64_t n, off; // sum of lengths of previous contigs
+/// contig
+struct cr_ctg_t {   /// a contig
+	char *name;     /// name of the contig
+	int32_t len;    /// max length seen in data
+	int32_t root_k; /// ???
+    /// sum of lengths of previous contigs
+	int64_t n, off; /// sum of lengths of previous contigs
 }
 
-struct cr_intv_t {    // an interval
-	uint64_t x;     // prior to cr_index(), x = ctg_id<<32|start_pos; after: x = start_pos<<32|end_pos
+/// interval
+struct cr_intv_t {  /// an interval
+	uint64_t x;     /// prior to cr_index(), x = ctg_id<<32|start_pos; after: x = start_pos<<32|end_pos
 	//uint32_t y:31, rev:1;
     mixin(bitfields!(
         uint32_t, "y", 31,
         uint32_t, "rev", 1
     ));
-	int32_t label;  // NOT used
+	int32_t label;  /// NOT used
+
+    void * data;    /// Data payload / encapsulated object ( modified also in cgranges.h/.c by JSB)
+    /// since we are building interval trees, have element "interval" for consistency* with avltree and splaytree
+    /// (*actually use of a pointer is inconsistent)
+    alias interval = data;
 }
 
+/// genomic ranges
 struct cgranges_t {
-	int64_t n_r, m_r;     // number and max number of intervals
-	cr_intv_t *r;         // list of intervals (of size _n_r_)
-	int32_t n_ctg, m_ctg; // number and max number of contigs
-	cr_ctg_t *ctg;        // list of contigs (of size _n_ctg_)
-	void *hc;             // dictionary for converting contig names to integers
+    /// number and max number of intervals
+	int64_t n_r, m_r;     /// number and max number of intervals
+	cr_intv_t *r;         /// list of intervals (of size _n_r_)
+	/// number and max number of contigs
+    int32_t n_ctg, m_ctg; /// number and max number of contigs
+	cr_ctg_t *ctg;        /// list of contigs (of size _n_ctg_)
+	void *hc;             /// dictionary for converting contig names to integers
 }
 
-/// retrieve start and end positions from a cr_intv_t object
 pragma(inline, true)
 {
-int32_t cr_st(const cr_intv_t *r) { return cast(int32_t)(r.x>>32); }
-int32_t cr_en(const cr_intv_t *r) { return cast(int32_t)r.x; }
-int32_t cr_start(const cgranges_t *cr, int64_t i) { return cr_st(&cr.r[i]); }
-int32_t cr_end(const cgranges_t *cr, int64_t i) { return cr_en(&cr.r[i]); }
-int32_t cr_label(const cgranges_t *cr, int64_t i) { return cr.r[i].label; }
+/// retrieve start and end positions from a cr_intv_t object
+int32_t cr_st(const(cr_intv_t) *r) { return cast(int32_t)(r.x>>32); }
+/// ditto
+int32_t cr_en(const(cr_intv_t) *r) { return cast(int32_t)r.x; }
+/// ditto
+int32_t cr_start(const(cgranges_t) *cr, int64_t i) { return cr_st(&cr.r[i]); }
+/// ditto
+int32_t cr_end(const(cgranges_t) *cr, int64_t i) { return cr_en(&cr.r[i]); }
+/// ditto
+int32_t cr_label(const(cgranges_t) *cr, int64_t i) { return cr.r[i].label; }
 }
 
 /// Initialize
@@ -135,8 +187,8 @@ cgranges_t *cr_init();
 /// Deallocate
 void cr_destroy(cgranges_t *cr);
 
-/// Add an interval
-cr_intv_t *cr_add(cgranges_t *cr, const(char) *ctg, int32_t st, int32_t en, int32_t label_int);
+/// Add an interval (JSB: data param)
+cr_intv_t *cr_add(cgranges_t *cr, const(char) *ctg, int32_t st, int32_t en, int32_t label_int, void * data);
 
 /// Sort and index intervals
 void cr_index(cgranges_t *cr);

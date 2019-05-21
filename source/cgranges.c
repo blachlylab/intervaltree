@@ -137,7 +137,8 @@ int32_t cr_get_ctg(const cgranges_t *cr, const char *ctg)
 	return k == kh_end(h)? -1 : kh_val(h, k);
 }
 
-cr_intv_t *cr_add(cgranges_t *cr, const char *ctg, int32_t st, int32_t en, int32_t label_int)
+// JSB: data param
+cr_intv_t *cr_add(cgranges_t *cr, const char *ctg, int32_t st, int32_t en, int32_t label_int, void * data)
 {
 	cr_intv_t *p;
 	int32_t k;
@@ -149,6 +150,7 @@ cr_intv_t *cr_add(cgranges_t *cr, const char *ctg, int32_t st, int32_t en, int32
 	p->x = (uint64_t)k << 32 | st;
 	p->y = en;
 	p->label = label_int;
+	p->data = data;
 	if (cr->ctg[k].len < en)
 		cr->ctg[k].len = en;
 	return p;
