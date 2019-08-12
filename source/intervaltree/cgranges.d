@@ -94,15 +94,15 @@ if (__traits(hasMember, IntervalType, "start") &&
         const auto n_b = cr_overlap(this.cr, contig, start, end, &b, &m_b);
         if (!n_b) return [];
 
-        /+ WORKS +/
+        /+ WORKS
         cr_intv_t[] ret;
         ret.length = n_b;
         for(int i; i<n_b; i++)
         {
             ret[i] = this.cr.r[b[i]];
-        }
+        }+/
         
-        //const(cr_intv_t)[] ret = this.cr.r[b[0] .. (b[0] + n_b)];
+        const(cr_intv_t)[] ret = this.cr.r[b[0] .. (b[0] + n_b)];
         return ret;
     }
 }
