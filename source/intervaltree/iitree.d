@@ -48,21 +48,17 @@ if (__traits(hasMember, IntervalType, "start") &&
     /// due to the need to call toStringz before calling the C API.
     ///
     /// last param "label" of cr_add not used by cgranges as of 2019-05-04
-    cr_intv_t* insert(const(char)[] contig, IntervalType i)
+    // 2019-05-21, if use GC would have to register the memory, just use malloc instead
+    // TODO free() in ~this
+    cr_intv_t* insert(S)(S contig, IntervalType i)
+    if(isSomeString!S || is(S: const(char)*))
     {
         IntervalType* iheap = cast(IntervalType *) malloc(IntervalType.sizeof);
         memcpy(iheap, &i, IntervalType.sizeof);
-        return cr_add(this.cr, toStringz(contig), i.start, i.end, 0, iheap);
-    }
-    /// ditto
-    cr_intv_t* insert(const(char)* contig, IntervalType i)
-    {
-        // WIP 2019-05-20, &i is local stack address :-O
-        // 2019-05-21, if use GC would have to register the memory, just use malloc instead
-        // TODO free() in ~this
-        IntervalType* iheap = cast(IntervalType *) malloc(IntervalType.sizeof);
-        memcpy(iheap, &i, IntervalType.sizeof);
-        return cr_add(this.cr, contig, i.start, i.end, 0, iheap);
+        static if (isSomeString!S)
+            return cr_add(this.cr, toStringz(contig), i.start, i.end, 0, iheap);
+        else
+            return cr_add(this.cr, contig, i.start, i.end, 0, iheap);
     }
 
     /// Index the data structure -- required after all inserts completed, before query
@@ -73,7 +69,15 @@ if (__traits(hasMember, IntervalType, "start") &&
         debug { this.indexed = true; }
     }
 
+    /// Locate and return intervals overlapping parameter qinterval in contig
     ///
+    /// qinterval must have members "start" and "end" (just like IntervalType
+    /// stored in the tree, but the types needn't be the same).
+    ///
+    /// Note that because the cgranges IITree stores contig this must be included,
+    /// unlike the other interval tree implementations.
+    ///
+    /// findOverlapsWith may also be called with \0-terminated contig, integer start, end
     auto findOverlapsWith(T)(const(char)[] contig, T qinterval)
     if (__traits(hasMember, T, "start") &&
     __traits(hasMember, T, "end"))
@@ -81,7 +85,7 @@ if (__traits(hasMember, IntervalType, "start") &&
         pragma(inline, true);
         return findOverlapsWith(toStringz(contig), qinterval.start, qinterval.end);
     }
-    /// 
+    /// ditto
     const(cr_intv_t)[] findOverlapsWith(const(char)* contig, int start, int end)
     {
         debug
