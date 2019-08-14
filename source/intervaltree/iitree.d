@@ -13,10 +13,11 @@ import core.stdc.string;    // memcpy
 import core.stdc.stdint;
 import std.bitmanip;
 import std.string : toStringz;
+import std.traits;
 
 debug import std.stdio;
 
-import cgranges;
+import intervaltree.cgranges;
 
 /** Implicit Interval Tree */
 struct IITree(IntervalType)

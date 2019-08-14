@@ -1,3 +1,8 @@
+module intervaltree.cgranges;
+
+import core.stdc.stdint;
+import std.bitmanip;
+
 extern(C):
 @nogc:
 nothrow:
