@@ -53,6 +53,7 @@ if (__traits(hasMember, IntervalType, "start") &&
     cr_intv_t* insert(S)(S contig, IntervalType i)
     if(isSomeString!S || is(S: const(char)*))
     {
+        // TODO: this is an direct leak reported by LSAN (was indirect until i added free(cr->r) in cgranges.c)
         IntervalType* iheap = cast(IntervalType *) malloc(IntervalType.sizeof);
         memcpy(iheap, &i, IntervalType.sizeof);
         static if (isSomeString!S)
@@ -82,7 +83,9 @@ if (__traits(hasMember, IntervalType, "start") &&
     if (__traits(hasMember, T, "start") &&
     __traits(hasMember, T, "end"))
     {
-        pragma(inline, true);
+        version(DigitalMars) pragma(inline);
+        version(GDC) pragma(inline, true);
+        version(LDC) pragma(inline, true);
         return findOverlapsWith(toStringz(contig), qinterval.start, qinterval.end);
     }
     /// ditto
@@ -96,20 +99,30 @@ if (__traits(hasMember, IntervalType, "start") &&
             }
         }
 
-        int64_t *b;
-        int64_t m_b;
+        // static to prevent cr_overlap from calling malloc/realloc every time
+        // TODO should move to struct level then free(b) in destructor
+        static int64_t *b;
+        static int64_t m_b;
         const auto n_b = cr_overlap(this.cr, contig, start, end, &b, &m_b);
         if (!n_b) return [];
 
-        /+ WORKS
-        cr_intv_t[] ret;
-        ret.length = n_b;
-        for(int i; i<n_b; i++)
-        {
-            ret[i] = this.cr.r[b[i]];
-        }+/
-        
-        const(cr_intv_t)[] ret = this.cr.r[b[0] .. (b[0] + n_b)];
-        return ret;
+        if (n_b == 1)
+            return this.cr.r[b[0] .. (b[0] + 1)];
+        else {
+            // can't do this.cr.r[b[0] .. (b[0] + n_b)] because elements of b[] may not be contiguous throughout r
+            // PROOF:
+            // consider intervals (3,10) (4, 6) (5, 12) (6, 20) (7,15) which lie in r[] sorted by start coord
+            // coordinate 7 overlaps first and last
+            /+ WORKS +/
+            cr_intv_t[] ret;
+            ret.length = n_b;
+            for(int i; i<n_b; i++)
+            {
+                ret[i] = this.cr.r[b[i]];
+            }
+            return ret;
+        }
+        //const(cr_intv_t)[] ret = this.cr.r[b[0] .. (b[0] + n_b)];
+        //return ret;
     }
 }
