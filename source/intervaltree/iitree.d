@@ -9,8 +9,10 @@ module intervaltree.iitree;
 
 import core.stdc.stdlib;    // malloc
 import core.stdc.string;    // memcpy
-
 import core.stdc.stdint;
+
+import core.memory;
+
 import std.bitmanip;
 import std.string : toStringz;
 import std.traits;
@@ -48,18 +50,66 @@ if (__traits(hasMember, IntervalType, "start") &&
     /// due to the need to call toStringz before calling the C API.
     ///
     /// last param "label" of cr_add not used by cgranges as of 2019-05-04
-    // 2019-05-21, if use GC would have to register the memory, just use malloc instead
-    // TODO free() in ~this
-    cr_intv_t* insert(S)(S contig, IntervalType i)
+    ///
+    /// Params:
+    ///     S = string-like contig name (if absent will pass "default" to cr_add)
+    ///     i = IntervalType or IntervalType*
+    ///     trackGC = (Default true) add i to the GC scanned ranges. see discussion
+    ///     GCptr   = (Default true) when i is IntervalType*, is the pointer to GC-mgd memory?
+    ///
+    /// Discussion:
+    ///     This container structure may store an IntervalType in one of two ways.
+    ///     First, you can pass a pointer which will be stored directly without additional
+    ///     memory allocations. Note however that if this pointer is to garbage collected
+    ///     memory and no other reference exists in the D code, it could be swept away.
+    ///     Even if it is not to GC memory, if it encapsulates a pointer (e.g., a string )
+    ///     you can still be bitten. Thus trackGC defaults to true. If unneeded, you might
+    ///     obtain a marginal speedup by setting trackGC = false.
+    ///
+    ///     The interval to be contained may also be passed by value. In this case,
+    ///     memory will be allocated with malloc and the pointer will be stored. In this case
+    ///     the same caveats regarding contained GC-pointing objects like D-arrays and strings
+    ///     still apply. For example, passing a struct by value may not necessitate tracking
+    ///     the memory in the GC if it contains only value types, but if the struct contains
+    ///     a D-style array or string, it must be tracked
+    ///
+    ///     Finally, there is a variant missing the first contig parameter. Unlike other trees,
+    ///     cgranges requires a string contig parameter, so a default value of "default"
+    ///     will be supplied.
+    cr_intv_t* insert(S)(S contig, IntervalType* i, bool trackGC = true, bool GCptr = true)
+    if(isSomeString!S || is(S: const(char)*))
+    in ( i !is null )
+    {
+        if (GCptr)  // i is ptr to GC-managed memory
+            GC.addRoot(i);
+        else        // i is ptr to non-GC heap mem but may contain ptr to GC-mem
+            if (trackGC) GC.addRange(i, IntervalType.sizeof, typeid(IntervalType));
+
+        static if (isSomeString!S)
+            return cr_add(this.cr, toStringz(contig), i.start, i.end, 0, i);
+        else
+            return cr_add(this.cr, contig, i.start, i.end, 0, i);
+    }
+    /// ditto
+    cr_intv_t* insert(S)(S contig, IntervalType i, bool trackGC = true)
     if(isSomeString!S || is(S: const(char)*))
     {
-        // TODO: this is an direct leak reported by LSAN (was indirect until i added free(cr->r) in cgranges.c)
+        // TODO: this is a direct leak reported by LSAN (was indirect until i added free(cr->r) in cgranges.c)
         IntervalType* iheap = cast(IntervalType *) malloc(IntervalType.sizeof);
         memcpy(iheap, &i, IntervalType.sizeof);
+        if (trackGC) GC.addRange(iheap, IntervalType.sizeof, typeid(IntervalType));
+        
         static if (isSomeString!S)
             return cr_add(this.cr, toStringz(contig), i.start, i.end, 0, iheap);
         else
             return cr_add(this.cr, contig, i.start, i.end, 0, iheap);
+    }
+    /// ditto
+    cr_intv_t* insert(I)(I i, bool trackGC = true)
+    {
+        pragma(inline,true);
+        immutable(char) *contig = "default";
+        insert(contig, i, trackGC);
     }
 
     /// Index the data structure -- required after all inserts completed, before query
