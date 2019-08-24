@@ -9,5 +9,6 @@
 		"emsi_containers": "~>0.8.0-alpha.12"
 	},
 	"sourceFiles": [ "source/cgranges.o" ],
-	"excludedSourceFiles": ["source/intervaltree/khash.d", "source/intervaltree/roundup.d"]
+	"excludedSourceFiles": ["source/intervaltree/khash.d", "source/intervaltree/roundup.d"],
+    "preBuildCommands": ["cd $PACKAGE_DIR; make source/cgranges.o"]
 }
