@@ -57,6 +57,8 @@ if (__traits(hasMember, IntervalType, "start") &&
     ///     trackGC = (Default true) add i to the GC scanned ranges. see discussion
     ///     GCptr   = (Default true) when i is IntervalType*, is the pointer to GC-mgd memory?
     ///
+    /// Non-payload variant: params contig, start, end
+    ///
     /// Discussion:
     ///     This container structure may store an IntervalType in one of two ways.
     ///     First, you can pass a pointer which will be stored directly without additional
@@ -109,7 +111,12 @@ if (__traits(hasMember, IntervalType, "start") &&
     {
         pragma(inline,true);
         immutable(char) *contig = "default";
-        insert(contig, i, trackGC);
+        return insert(contig, i, trackGC);
+    }
+    /// ditto
+    cr_intv_t* insert(const(char)* contig, int start, int end)
+    {
+        return cr_add(this.cr, contig, start, end, 0, null);
     }
 
     /// Index the data structure -- required after all inserts completed, before query
