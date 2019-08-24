@@ -10,8 +10,8 @@ intervaltree provides 3 implementations of an interval tree structure:
 A classic Red-Black tree is not included but would be welcomed.
 
 In addition to the package module itself, which includes a "BasicInterval"
-struct, the package includes 3 sub-modules, one for each of the tree types
-listed above:
+struct and an "overlaps" function, the package includes 3 sub-modules,
+one for each of the tree types listed above:
 
 intervaltree.avltree
 intervaltree.splaytree
@@ -71,3 +71,10 @@ as the "cgranges" C library. This library is intended for genome applications,
 and includes a "contig" parameter. The IIT structure excels at both sequential
 and random access, with the disadvantage that it must be reindexed (resorted)
 after any/all inserts or deletes, so it works best with static trees.
+
+Credits
+-------
+AVL tree based on attractivechaos' klib https://github.com/attractivechaos/klib
+Splay tree is my own implementation
+IITree is a D wrapper around Heng Li's cgranges C library, which is included as source
+https://github.com/lh3/cgranges

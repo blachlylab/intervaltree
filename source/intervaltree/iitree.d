@@ -141,7 +141,7 @@ if (__traits(hasMember, IntervalType, "start") &&
     __traits(hasMember, T, "end"))
     {
         version(DigitalMars) pragma(inline);
-        version(GDC) pragma(inline, true);
+        version(GNU) pragma(inline, true);
         version(LDC) pragma(inline, true);
         return findOverlapsWith(toStringz(contig), qinterval.start, qinterval.end);
     }
