@@ -500,7 +500,7 @@ struct IntervalSplayTree(IntervalType)
             //if (current.right) stack.insertBack(current.right);
             if (current.right) stack[s++] = current.right;
 
-            debug
+            debug(intervaltree_debug)
             {
                 if (s > 64) {
                     import core.stdc.stdio : stderr, fprintf;
@@ -512,11 +512,13 @@ struct IntervalSplayTree(IntervalType)
             
         }
 
-        debug
+        debug(intervaltree_debug)
         {
             // Observations:
             // Max depth observed, in real world bedcov application is ~13
             // Max depth observed, in real world liftover application is 18 (outlier), ~12-14 max, mode 2!
+            // Max depth observed in sorted BED tree/BAM query cov is 28, max ~8, mode 2
+            //  - pathological; this is when one interval overlapped thousands to tens of thousands of intervals in tree
             import core.stdc.stdio : stderr, fprintf;
             fprintf(stderr, "maxs: %d\n", maxs);
         }
