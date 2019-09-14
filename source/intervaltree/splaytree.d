@@ -550,7 +550,7 @@ struct IntervalSplayTree(IntervalType)
 
             // Check if the interval is to the right of our largest value;
             // if yes, bail out
-            if (interval >= current.max)  // TODO: check inequality; is >= correct for half-open coords?
+            if (interval.start >= current.max)  // TODO: check inequality; is >= correct for half-open coords?
                 continue;
             
             // If the interval starts less than curent interval,
