@@ -381,7 +381,7 @@ struct IntervalSplayTree(IntervalType)
 
     // NB if change to class, add 'final'
     /** Bring Node N to top of tree */
-    @nogc nothrow
+    @safe @nogc nothrow
     private void splay(Node *n) 
     {
         while (n.parent !is null)
@@ -588,13 +588,13 @@ struct IntervalSplayTree(IntervalType)
     }
 
     /// find minimum valued Node (interval)
-    @nogc nothrow
+    @safe @nogc nothrow
     Node *findMin() 
     {
         return findSubtreeMin(this.root);
     }
     /// ditto
-    @nogc nothrow
+    @safe @nogc nothrow
     private static Node* findSubtreeMin(Node *n) 
     {
         Node *current = n;
@@ -629,7 +629,9 @@ struct IntervalSplayTree(IntervalType)
 
     /// insert interval, updating "max" on the way down
     // TODO: unit test degenerate start intervals (i.e. [10, 11), [10, 13) )
-    Node * insert(IntervalType i) nothrow
+    // TODO: make @nogc by swapping stdx.allocator for 'new'
+    @safe nothrow
+    Node * insert(IntervalType i)
     {
         // if empty tree, assign a new root and return
         if (this.root is null)
@@ -694,13 +696,13 @@ struct IntervalSplayTree(IntervalType)
     bool remove(IntervalType i);
 
     /// iterator functions: reset
-    @nogc nothrow
+    @safe @nogc nothrow
     void iteratorReset()
     {
         this.cur = null;
     }
     /// iterator functions: next
-    @nogc nothrow
+    @safe @nogc nothrow
     Node *iteratorNext()
     {
         if (this.cur is null)   // initial condition

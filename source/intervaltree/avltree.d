@@ -15,7 +15,7 @@ import containers.unrolledlist;
 
 // LOL, this compares pointer addresses
 //alias cmpfn = (x,y) => ((y < x) - (x < y));
-@safe alias cmpfn = (x,y) => ((y.interval < x.interval) - (x.interval < y.interval));
+@safe @nogc nothrow alias cmpfn = (x,y) => ((y.interval < x.interval) - (x.interval < y.interval));
 
 /// child node direction
 private enum DIR : int
@@ -59,7 +59,7 @@ if (__traits(hasMember, IntervalType, "start") &&
     /// side note: D is beautiful in that Node(i) will work just fine
     /// without this constructor since its first member is IntervalType interval,
     /// but we need the constructor to update max.
-    @nogc nothrow
+    @safe @nogc nothrow
     this(IntervalType i) 
     {
         this.interval = i;  // blit
@@ -433,7 +433,7 @@ unittest
     tree.insert(bnode, cnt);
     tree.insert(cnode, cnt);
     
-    auto found = tree.find(bnode, cnt);
+    const auto found = tree.find(bnode, cnt);
     assert(found == bnode);
 
     // TODO, actually not sure that these are returned strictly ordered if there are many
