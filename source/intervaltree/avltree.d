@@ -81,6 +81,9 @@ if (__traits(hasMember, IntervalType, "start") &&
     }
 }
 
+/// Common API across Interval AVL Trees and Interval Splay Trees
+alias IntervalTree = IntervalAVLTree;
+
 ///
 struct IntervalAVLTree(IntervalType)
 {
