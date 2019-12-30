@@ -5,6 +5,10 @@ This is not threadsafe! Every query modifies the tree.
 Timing data:
     findOverlapsWith: UnrolledList < D array < SList (emsi)
 
+Enable instrumentation:
+    version(instrument)
+        This will calculate statistics related to traversal depth
+
 Author: James S. Blachly, MD <james.blachly@gmail.com>
 Copyright: Copyright (c) 2019 James Blachly
 License: MIT
@@ -14,6 +18,8 @@ module intervaltree.splaytree;
 import intervaltree : BasicInterval, overlaps;
 
 import containers.unrolledlist;
+
+version(instrument) __gshared int[] _splaytree_visited;
 
 /// Probably should not be used directly by consumer
 struct IntervalTreeNode(IntervalType)
@@ -470,6 +476,8 @@ struct IntervalSplayTree(IntervalType)
         Node*[64] stack = void;
         int s;
         debug int maxs;
+        version(instrument) int visited;
+
         //UnrolledList!(Node *) stack;
         UnrolledList!(Node *) ret;
 
@@ -483,6 +491,7 @@ struct IntervalSplayTree(IntervalType)
         {
             //current = stack.moveBack();
             current = stack[--s];
+            version(instrument) visited+=1;
 
             // if query interval lies to the right of current tree, skip  
             if (qinterval.start >= current.max) continue;
@@ -534,6 +543,7 @@ struct IntervalSplayTree(IntervalType)
 
         return ret;
 */
+        version(instrument) _splaytree_visited ~= visited;
         if (ret.length > 0)
             splay(ret.front());
         return ret;
