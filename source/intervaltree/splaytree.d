@@ -475,18 +475,14 @@ struct IntervalSplayTree(IntervalType)
         debug int maxs;
         version(instrument) int visited;
 
-        //UnrolledList!(Node *) stack;
         UnrolledList!(Node *) ret;
 
         Node* current;
 
-        //stack.insertBack(this.root);
         stack[s++] = this.root;
 
-        //while(stack.length >= 1)
         while(s >= 1)
         {
-            //current = stack.moveBack();
             current = stack[--s];
             version(instrument) visited+=1;
 
@@ -504,9 +500,7 @@ struct IntervalSplayTree(IntervalType)
 
             // if current node overlaps query interval, save it and search its children
             if (current.interval.overlaps(qinterval)) ret ~= current;
-            //if (current.left) stack.insertBack(current.left);
             if (current.left) stack[s++] = current.left;
-            //if (current.right) stack.insertBack(current.right);
             if (current.right) stack[s++] = current.right;
 
             debug(intervaltree_debug)
