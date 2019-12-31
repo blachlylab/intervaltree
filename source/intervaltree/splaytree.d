@@ -467,12 +467,9 @@ struct IntervalSplayTree(IntervalType)
     */
     nothrow
     UnrolledList!(Node *) findOverlapsWith(T)(T qinterval)
-    //Node*[] findOverlapsWith(T)(T qinterval)
     if (__traits(hasMember, T, "start") &&
         __traits(hasMember, T, "end"))
     {
-//        Node*[] ret;
-//        ret.reserve(7);
         Node*[64] stack = void;
         int s;
         debug int maxs;
@@ -535,14 +532,6 @@ struct IntervalSplayTree(IntervalType)
             fprintf(stderr, "maxs: %d\n", maxs);
         }
 
-/* when Node*[]
-        if (ret.length == 0) return ret;
-        if (ret.length == 1) splay(ret[0]);
-        // TODO else len > 1 ??? 
-        else splay(ret[0]);
-
-        return ret;
-*/
         version(instrument) _splaytree_visited ~= visited;
         if (ret.length > 0)
             splay(ret.front());
