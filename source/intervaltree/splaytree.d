@@ -14,8 +14,6 @@ module intervaltree.splaytree;
 
 import intervaltree : BasicInterval, overlaps;
 
-import containers.unrolledlist;
-
 version(instrument) __gshared int[] _splaytree_visited;
 
 /// Probably should not be used directly by consumer
