@@ -3,6 +3,12 @@
 #include "cgranges.h"
 #include "khash.h"
 
+#ifdef INSTRUMENT
+int64_t _iitree_visited_size = 0;
+int64_t _iitree_visited_capacity = 0;
+int32_t *_iitree_visited = NULL;
+#endif
+
 /**************
  * Radix sort *
  **************/
@@ -262,6 +268,9 @@ int64_t cr_overlap_int(const cgranges_t *cr, int32_t ctg_id, int32_t st, int32_t
 	const cr_intv_t *r;
 	int64_t *b = *b_, m_b = *m_b_, n = 0;
 	istack_t stack[64], *p;
+#ifdef INSTRUMENT
+	int32_t visited = 0;
+#endif
 
 	if (ctg_id < 0 || ctg_id >= cr->n_ctg) return 0;
 	c = &cr->ctg[ctg_id];
@@ -270,6 +279,9 @@ int64_t cr_overlap_int(const cgranges_t *cr, int32_t ctg_id, int32_t st, int32_t
 	p->k = c->root_k, p->x = (1LL<<p->k) - 1, p->w = 0; // push the root into the stack
 	while (t) { // stack is not empyt
 		istack_t z = stack[--t];
+#ifdef INSTRUMENT
+		visited++;
+#endif
 		if (z.k <= 3) { // the subtree is no larger than (1<<(z.k+1))-1; do a linear scan
 			int64_t i, i0 = z.x >> z.k << z.k, i1 = i0 + (1LL<<(z.k+1)) - 1;
 			if (i1 >= c->n) i1 = c->n;
@@ -296,6 +308,12 @@ int64_t cr_overlap_int(const cgranges_t *cr, int32_t ctg_id, int32_t st, int32_t
 		}
 	}
 	*b_ = b, *m_b_ = m_b;
+#ifdef INSTRUMENT
+	// Simulate a dynamic array using lh3s macro
+	if(_iitree_visited_size== _iitree_visited_capacity) EXPAND(_iitree_visited, _iitree_visited_capacity);
+	_iitree_visited[_iitree_visited_size] = visited;
+	_iitree_visited_size++;
+#endif
 	return n;
 }
 

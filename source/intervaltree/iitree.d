@@ -20,6 +20,7 @@ import std.traits;
 debug import std.stdio;
 
 import intervaltree.cgranges;
+version(instrument) public import intervaltree.cgranges: _iitree_visited, _iitree_visited_size, _iitree_visited_capacity;
 
 /** Implicit Interval Tree */
 struct IITree(IntervalType)

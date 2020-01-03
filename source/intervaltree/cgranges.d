@@ -27,6 +27,12 @@ nothrow:
    SOFTWARE.
 */
 
+version(instrument) {
+    extern __gshared int32_t* _iitree_visited;
+    extern __gshared int32_t _iitree_visited_size;
+    extern __gshared int32_t _iitree_visited_capacity;
+}
+
 /// contig
 struct cr_ctg_t {   /// a contig
 	char *name;     /// name of the contig

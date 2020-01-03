@@ -3,6 +3,10 @@
 The AVL implementation is derived from attractivechaos'
 klib (kavl.h) and the derived code remains MIT licensed.
 
+Enable instrumentation:
+    version(instrument)
+        This will calculate statistics related to traversal depth
+
 Author: James S. Blachly, MD <james.blachly@gmail.com>
 Copyright: Copyright (c) 2019 James Blachly
 License: MIT
@@ -12,6 +16,8 @@ module intervaltree.avltree;
 import intervaltree : BasicInterval, overlaps;
 
 import containers.unrolledlist;
+
+version(instrument) __gshared int[] _avltree_visited;
 
 // LOL, this compares pointer addresses
 //alias cmpfn = (x,y) => ((y < x) - (x < y));
@@ -143,6 +149,7 @@ struct IntervalAVLTree(IntervalType)
         Node*[] ret;
         //ret.reserve(7);
         UnrolledList!(Node *) stack;
+        version(instrument) int visited;
 
         Node* current;
 
@@ -151,6 +158,7 @@ struct IntervalAVLTree(IntervalType)
         while(stack.length >= 1)
         {
             current = stack.moveBack();
+            version(instrument) visited += 1;
 
             // if query interval lies to the right of current tree, skip  
             if (qinterval.start >= current.max) continue;
@@ -169,6 +177,7 @@ struct IntervalAVLTree(IntervalType)
             if (current.p[DIR.RIGHT]) stack.insertBack(current.p[DIR.RIGHT]);
         }
 
+        version(instrument) _avltree_visited ~= visited;
         return ret;
     }
 
