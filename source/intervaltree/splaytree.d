@@ -2,9 +2,6 @@
 
 This is not threadsafe! Every query modifies the tree.
 
-Timing data:
-    findOverlapsWith: UnrolledList < D array < SList (emsi)
-
 Enable instrumentation:
     version(instrument)
         This will calculate statistics related to traversal depth
@@ -462,11 +459,21 @@ struct IntervalSplayTree(IntervalType)
         We use template type "T" here instead of the enclosing struct's IntervalType
         so that we can from externally query with any type of interval object
 
+        (note: outdated, see below)
+        Timing data:
+            UnrolledList < D array < SList (emsi)
+
+        Notes:
+            Node*[] performed more poorly than UnrolledList on my personal Mac laptop,
+            However, dlang GC-backed Node*[] performed BETTER than UnrolledList (<5%, but consistent)
+            on linux, perhaps due to no memory pressure and GC not needing to free.
+            As this is a bioinformatics tool likely to be run on decent linux machines,
+            we will leave as dyanmic array.
         TODO: benchmark return Node[]
         TODO: benchmark return Node** and out count vs non-GC container
     */
     nothrow
-    UnrolledList!(Node *) findOverlapsWith(T)(T qinterval)
+    Node*[] findOverlapsWith(T)(T qinterval)
     if (__traits(hasMember, T, "start") &&
         __traits(hasMember, T, "end"))
     {
@@ -475,7 +482,7 @@ struct IntervalSplayTree(IntervalType)
         debug int maxs;
         version(instrument) int visited;
 
-        UnrolledList!(Node *) ret;
+        Node*[] ret;
 
         Node* current;
 
@@ -493,7 +500,6 @@ struct IntervalSplayTree(IntervalType)
             // look in the left subtree
             if (qinterval.end <= current.interval.start)
             {
-                //if (current.left) stack.insertBack(current.left);
                 if (current.left) stack[s++] = current.left;
                 continue;
             }
@@ -527,8 +533,9 @@ struct IntervalSplayTree(IntervalType)
         }
 
         version(instrument) _splaytree_visited ~= visited;
+        // PERF: splay(current) without the branch led to marked performance degradation, > 10% worse runtime
         if (ret.length > 0)
-            splay(ret.front());
+            splay(ret[0]);
         else
             splay(current); // 3-5% runtime improvement
         return ret;
