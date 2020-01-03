@@ -14,6 +14,11 @@ module intervaltree.splaytree;
 
 import intervaltree : BasicInterval, overlaps;
 
+import std.experimental.allocator;
+import std.experimental.allocator.building_blocks.region;
+import std.experimental.allocator.building_blocks.allocator_list : AllocatorList;
+import std.experimental.allocator.mallocator : Mallocator;
+
 version(instrument) __gshared int[] _splaytree_visited;
 
 /// Probably should not be used directly by consumer
@@ -94,6 +99,8 @@ struct IntervalSplayTree(IntervalType)
 
     Node *root;    /// tree root
     Node *cur;      /// current or cursor for iteration
+
+    AllocatorList!((n) => Region!Mallocator(IntervalType.sizeof * 65536)) mempool;
 
     // NB if change to class, add 'final'
     /** zig a child of the root node */
@@ -633,13 +640,14 @@ struct IntervalSplayTree(IntervalType)
     /// insert interval, updating "max" on the way down
     // TODO: unit test degenerate start intervals (i.e. [10, 11), [10, 13) )
     // TODO: make @nogc by swapping stdx.allocator for 'new'
-    @safe nothrow
+    @trusted nothrow
     Node * insert(IntervalType i)
     {
         // if empty tree, assign a new root and return
         if (this.root is null)
         {
-            this.root = new Node(i);   // heap alloc
+            //this.root = new Node(i);   // heap alloc
+            this.root = this.mempool.make!Node(i);
             return this.root;
         }
 
@@ -655,7 +663,8 @@ struct IntervalSplayTree(IntervalType)
             {
                 if (current.left is null)       // add here and return
                 {
-                    Node *newNode = new Node(i);   // heap alloc
+                    //Node *newNode = new Node(i);   // heap alloc
+                    Node *newNode = this.mempool.make!Node(i);
                     current.left = newNode;
                     newNode.parent = current;
 
@@ -668,7 +677,8 @@ struct IntervalSplayTree(IntervalType)
             {
                 if (current.right is null)      // add here and return
                 {
-                    Node *newNode = new Node(i);    // heap alloc
+                    //Node *newNode = new Node(i);    // heap alloc
+                    Node *newNode = this.mempool.make!Node(i);
                     current.right = newNode;
                     newNode.parent = current;
 
