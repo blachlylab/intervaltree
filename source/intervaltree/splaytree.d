@@ -529,6 +529,8 @@ struct IntervalSplayTree(IntervalType)
         version(instrument) _splaytree_visited ~= visited;
         if (ret.length > 0)
             splay(ret.front());
+        else
+            splay(current); // 3-5% runtime improvement
         return ret;
     }
 
