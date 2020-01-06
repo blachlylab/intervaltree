@@ -19,6 +19,8 @@ import std.experimental.allocator.building_blocks.region;
 import std.experimental.allocator.building_blocks.allocator_list : AllocatorList;
 import std.experimental.allocator.mallocator : Mallocator;
 
+import mir.random;
+
 version(instrument) __gshared int[] _splaytree_visited;
 
 /// Probably should not be used directly by consumer
@@ -395,6 +397,12 @@ struct IntervalSplayTree(IntervalType)
     @safe @nogc nothrow
     private void splay(Node *n) 
     {
+        // probablistically splay:
+        // Albers and Karpinski, Randomized splay trees: theoretical and experimental results
+        // Information Processing Letters, Volume 81, Issue 4, 28 February 2002
+        // http://www14.in.tum.de/personen/albers/papers/ipl02.pdf
+        if (rand!ubyte & 0b11110000) return;
+        
         while (n.parent !is null)
         {
             const Node *p = n.parent;
@@ -482,7 +490,7 @@ struct IntervalSplayTree(IntervalType)
     if (__traits(hasMember, T, "start") &&
         __traits(hasMember, T, "end"))
     {
-        Node*[64] stack = void;
+        Node*[128] stack = void;
         int s;
         debug int maxs;
         version(instrument) int visited;
@@ -516,7 +524,8 @@ struct IntervalSplayTree(IntervalType)
 
             debug(intervaltree_debug)
             {
-                if (s > 64) {
+                // guard was (s > 64) but there are three increments above, so decrease for safety
+                if (s > 60) {
                     import core.stdc.stdio : stderr, fprintf;
                     fprintf(stderr, "FAIL maxs: %d", maxs);
                     assert(0, "stack overflow :-( Please post an issue at https://github.com/blachlylab/intervaltree");

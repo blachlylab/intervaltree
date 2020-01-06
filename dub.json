@@ -6,7 +6,8 @@
 	"homepage": "http://github.com/blachlylab/intervaltree",
 	"license": "MIT",
 	"dependencies": {
-		"emsi_containers": "~>0.8.0-alpha.12"
+		"emsi_containers": "~>0.8.0-alpha.12",
+        "mir-random": "~>2.2.8"
 	},
 	"sourceFiles": [ "source/cgranges.o" ],
 	"excludedSourceFiles": ["source/intervaltree/khash.d", "source/intervaltree/roundup.d"],
