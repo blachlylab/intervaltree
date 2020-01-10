@@ -15,13 +15,21 @@ module intervaltree.avltree;
 
 import intervaltree : BasicInterval, overlaps;
 
+import std.traits : isPointer, PointerTarget, Unqual;
+
+import std.experimental.allocator;
+import std.experimental.allocator.building_blocks.region;
+import std.experimental.allocator.building_blocks.allocator_list : AllocatorList;
+import std.experimental.allocator.building_blocks.null_allocator : NullAllocator;
+import std.experimental.allocator.mallocator : Mallocator;
+
 import containers.unrolledlist;
 
 version(instrument) __gshared int[] _avltree_visited;
 
 // LOL, this compares pointer addresses
 //alias cmpfn = (x,y) => ((y < x) - (x < y));
-@safe @nogc nothrow alias cmpfn = (x,y) => ((y.interval < x.interval) - (x.interval < y.interval));
+//@safe @nogc nothrow alias cmpfn = (x, y) => ((y.interval < x.interval) - (x.interval < y.interval));
 
 /// child node direction
 private enum DIR : int
@@ -97,12 +105,38 @@ struct IntervalAVLTree(IntervalType)
 
     Node *root;    /// tree root
 
+    private AllocatorList!((n) => Region!Mallocator(IntervalType.sizeof * 65_536), NullAllocator) mempool;
+
     /+
     /// needed for iterator / range
     const(Node)*[KAVL_MAX_DEPTH] itrstack; /// ?
     const(Node)** top;     /// _right_ points to the right child of *top
     const(Node)*  right;   /// _right_ points to the right child of *top
     +/
+
+    ///@safe @nogc nothrow alias cmpfn = (x, y) => ((y.interval < x.interval) - (x.interval < y.interval));
+    /*pragma(inline, true) @safe @nogc nothrow int cmpfn(Tx)(Tx x, const(Node)* y)
+    {
+        static if (isPointer!Tx && is(PointerTarget!(Unqual!Tx) == Node))
+            return ((y.interval < x.interval) - (x.interval < y.interval));
+        else static if (is(Tx == IntervalType))
+            return ((y.interval < x) - (x < y.interval));
+        else
+            assert(0);
+    }*/
+
+    pragma(inline, true)
+    {
+        @safe @nogc nothrow int cmpfn(IntervalType x, inout(Node)* y)
+        {
+            return ((y.interval < x) - (x < y.interval));
+        }
+
+        @safe @nogc nothrow int cmpfn(inout(Node)* x, inout(Node)* y)
+        {
+            return ((y.interval < x.interval) - (x.interval < y.interval));
+        }
+    }
 
     /**
     * Find a node in the tree
@@ -237,13 +271,15 @@ struct IntervalAVLTree(IntervalType)
     *
     *   Will update Node .max values on the way down
     *
-    * @param x       node to insert (in)
+    * @param interval Interval: IntervalType to insert (in)
     * @param cnt     number of nodes smaller than or equal to _x_; can be NULL (out)
     *
-    * @return _x_ if not present in the tree, or the node equal to x.
+    * @return _node*_ if not present in the tree, or the node* equal to interval I.
+    *
+    * Cannot be @safe due to call to @system std.experimental.allocator.make
+    * Cannot use @trusted escape for make as delegates are gc-allocating(?)
     */
-    @safe @nogc nothrow
-    Node *insert(Node *x, out uint cnt)
+    @trusted @nogc nothrow Node* insert(IntervalType interval, out uint cnt)
     {
         
         ubyte[KAVL_MAX_DEPTH] stack;
@@ -260,7 +296,7 @@ struct IntervalAVLTree(IntervalType)
         bp = this.root, bq = null;
         /* find the insertion location */
         for (p = bp, q = bq, top = path_len = 0; p; q = p, p = p.p[which]) {
-            const int cmp = cmpfn(x, p);
+            const int cmp = cmpfn(interval, p);
             if (cmp >= 0) cnt += kavl_size_child(p, DIR.LEFT) + 1; // left tree plus self
             if (cmp == 0) {
                 // an identical Node is already present here
@@ -272,8 +308,11 @@ struct IntervalAVLTree(IntervalType)
             path[path_len++] = p;
 
             // JSB: conditionally update max irrespective of whether we add new node, or descend
-            if (x.interval.end > p.max) p.max = x.interval.end;
+            if (interval.end > p.max) p.max = interval.end;
         }
+
+        // JSB: an interval will be inserted, create node x (previously x was parameter Node*)
+        Node* x = this.mempool.make!Node(interval);
 
         x.balance = 0, x.size = 1, x.p[DIR.LEFT] = x.p[DIR.RIGHT] = null;
         if (q is null) this.root = x;
@@ -441,18 +480,18 @@ unittest
     auto cnode = new IntervalTreeNode!(BasicInterval)(c);
 
     uint cnt;
-    tree.insert(anode, cnt);
-    tree.insert(bnode, cnt);
-    tree.insert(cnode, cnt);
-    
+    tree.insert(a, cnt);
+    tree.insert(b, cnt);
+    tree.insert(c, cnt);
+
     const auto found = tree.find(bnode, cnt);
-    assert(found == bnode);
+    assert(found.interval == b);
 
     // TODO, actually not sure that these are returned strictly ordered if there are many
     auto o = tree.findOverlapsWith(BasicInterval(15, 30));
     assert(o.length == 2);
-    assert(o[0] == bnode);
-    assert(o[1] == cnode);
+    assert(o[0].interval == bnode.interval);
+    assert(o[1].interval == cnode.interval);
 
     writeln("passed");
 }
