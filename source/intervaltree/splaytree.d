@@ -17,6 +17,7 @@ import intervaltree : BasicInterval, overlaps;
 import std.experimental.allocator;
 import std.experimental.allocator.building_blocks.region;
 import std.experimental.allocator.building_blocks.allocator_list : AllocatorList;
+import std.experimental.allocator.building_blocks.null_allocator : NullAllocator;
 import std.experimental.allocator.mallocator : Mallocator;
 
 import mir.random;
@@ -102,7 +103,7 @@ struct IntervalSplayTree(IntervalType)
     Node *root;    /// tree root
     Node *cur;      /// current or cursor for iteration
 
-    AllocatorList!((n) => Region!Mallocator(IntervalType.sizeof * 65536)) mempool;
+    private AllocatorList!((n) => Region!Mallocator(IntervalType.sizeof * 65_536), NullAllocator) mempool;
 
     // NB if change to class, add 'final'
     /** zig a child of the root node */
@@ -648,9 +649,7 @@ struct IntervalSplayTree(IntervalType)
 
     /// insert interval, updating "max" on the way down
     // TODO: unit test degenerate start intervals (i.e. [10, 11), [10, 13) )
-    // TODO: make @nogc by swapping stdx.allocator for 'new'
-    @trusted nothrow
-    Node * insert(IntervalType i)
+    @trusted @nogc nothrow Node* insert(IntervalType i)
     {
         // if empty tree, assign a new root and return
         if (this.root is null)
