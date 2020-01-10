@@ -13,6 +13,7 @@
 
 # Executables
 *.exe
+intervaltree-test-library
 
 # DUB
 dub.selections.json
