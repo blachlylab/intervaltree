@@ -23,8 +23,6 @@ import std.experimental.allocator.building_blocks.allocator_list : AllocatorList
 import std.experimental.allocator.building_blocks.null_allocator : NullAllocator;
 import std.experimental.allocator.mallocator : Mallocator;
 
-import containers.unrolledlist;
-
 version(instrument) __gshared int[] _avltree_visited;
 
 // LOL, this compares pointer addresses
@@ -180,18 +178,19 @@ struct IntervalAVLTree(IntervalType)
     if (__traits(hasMember, T, "start") &&
         __traits(hasMember, T, "end"))
     {
-        Node*[] ret;
-        //ret.reserve(7);
-        UnrolledList!(Node *) stack;
+        Node*[KAVL_MAX_DEPTH] stack = void;
+        int s;
         version(instrument) int visited;
+
+        Node*[] ret;
 
         Node* current;
 
-        stack.insertBack(this.root);
+        stack[s++] = this.root;
 
-        while(stack.length >= 1)
+        while(s >= 1)
         {
-            current = stack.moveBack();
+            current = stack[--s];
             version(instrument) visited += 1;
 
             // if query interval lies to the right of current tree, skip  
@@ -201,14 +200,14 @@ struct IntervalAVLTree(IntervalType)
             // look in the left subtree
             if (qinterval.end <= current.interval.start)
             {
-                if (current.p[DIR.LEFT]) stack.insertBack(current.p[DIR.LEFT]);
+                if (current.p[DIR.LEFT]) stack[s++] = current.p[DIR.LEFT];
                 continue;
             }
 
             // if current node overlaps query interval, save it and search its children
             if (current.interval.overlaps(qinterval)) ret ~= current;
-            if (current.p[DIR.LEFT]) stack.insertBack(current.p[DIR.LEFT]);
-            if (current.p[DIR.RIGHT]) stack.insertBack(current.p[DIR.RIGHT]);
+            if (current.p[DIR.LEFT]) stack[s++] = current.p[DIR.LEFT];
+            if (current.p[DIR.RIGHT]) stack[s++] = current.p[DIR.RIGHT];
         }
 
         version(instrument) _avltree_visited ~= visited;
