@@ -22,7 +22,7 @@ Simply `include intervaltree.<treetype>` in your code.
 Overview
 --------
 Each tree is implemented as a container type. So, in addition to [start,end)
-interval coordinates, it may contain other data.
+interval coordinates, it may contain arbitrary other data.
 
 API (unstable until 1.0.0)
 --------------------------
@@ -37,6 +37,19 @@ findMin
 
 Planned: ForwardRange interface
 
+Debugging
+---------
+Debug messages:
+    Debug messages are only printed when debug symbol `intervaltree_debug`
+    is defined in order to better preserve debug messages from your own
+    program's `debug { }` blocks.
+
+Instrumentation:
+    * Defining version `instrument` creates a variable
+    `__gshared int[] _{treename}_visited` where `{treename}` in (avltree, splaytree)
+    and holds statistics on the number of nodes visited to find results.
+    * For cgranges (iitree), you must additionally #define INSTRUMENT and recompile
+    `cgranges.c`
 
 Brief discussion of interval trees and relative tradeoffs
 ---------------------------------------------------------
@@ -47,6 +60,8 @@ https://en.wikipedia.org/wiki/AVL_tree
 https://en.wikipedia.org/wiki/Splay_tree
 https://github.com/lh3/cgranges
 
+Interval trees are often implemented as augmented binary search trees.
+Here, we explore several different types of binary search trees.
 
 Red-Black trees are relatively well-balanced, but not perfectly so.
 Insertion is fastest; query is slightly slower than AVL tree due to

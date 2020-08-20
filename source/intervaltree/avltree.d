@@ -178,6 +178,19 @@ struct IntervalAVLTree(IntervalType)
     if (__traits(hasMember, T, "start") &&
         __traits(hasMember, T, "end"))
     {
+        // If the calling library does something stupid like, say, call this method
+        // on a null-pointer let's try to prevent a segfault.
+        // MAINTAINER: there is an identical code block in avltree.d/splaytree.d. Update both.
+        if (&this is null) {
+            debug(intervaltree_debug) {
+                import core.stdc.stdio : stderr, fprintf;
+                // The below error is perhaps over specific. In the case of swiftover, we use a hash table
+                // to map contig->interval tree *, keyed on contig. If DNE it happily returns a null pointer *eyeroll*
+                fprintf(stderr, "Null context in findOverlapsWith. Your contig probably does not exist.\n");
+            }
+            return [];
+        }
+
         Node*[KAVL_MAX_DEPTH] stack = void;
         int s;
         version(instrument) int visited;
