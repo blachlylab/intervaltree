@@ -21,8 +21,10 @@ Simply `include intervaltree.<treetype>` in your code.
 
 Overview
 --------
-Each tree is implemented as a container type. So, in addition to [start,end)
-interval coordinates, it may contain arbitrary other data.
+Each tree is implemented as a container type via templates. So, in addition to
+[start,end) interval coordinates, it may contain arbitrary other data. For
+example, instantiate the tree as IntervalTree!MyStruct
+
 
 API (unstable until 1.0.0)
 --------------------------
@@ -35,7 +37,21 @@ find
 findOverlapsWith
 findMin
 
-Planned: ForwardRange interface
+Currently, `avltree` and `splaytree` share a common API requiring only coordinates,
+whereas `iitree` differs in that a string key identifying a distinct interval tree
+is an implicit part of the data structure. i.e., the IITree structure may contain
+multiple independent trees. IITree was developed for genomics and the key is understood
+as "contig" (chromosome) in this context, but could be used for whatever. For an
+example software consuming this library and using `version` to access any of the
+trees, see https://github.com/blachlylab/swiftover/
+
+ForwardRange interface: planned.
+
+@nogc status: insert and delete operations are `@nogc`. Currently, findOverlapsWith
+returns Node*[] using dlang dynamic arrays and thus cannot be @nogc. It would be great
+for the entire library to be `@nogc` but I haven't settled on a suitable array impl,
+and I also hate to make the caller remember to free() the returned nodes.
+
 
 Debugging
 ---------
@@ -51,15 +67,9 @@ Instrumentation:
     * For cgranges (iitree), you must additionally #define INSTRUMENT and recompile
     `cgranges.c`
 
+
 Brief discussion of interval trees and relative tradeoffs
 ---------------------------------------------------------
-https://en.wikipedia.org/wiki/Interval_tree
-
-https://en.wikipedia.org/wiki/Red%E2%80%93black_tree
-https://en.wikipedia.org/wiki/AVL_tree
-https://en.wikipedia.org/wiki/Splay_tree
-https://github.com/lh3/cgranges
-
 Interval trees are often implemented as augmented binary search trees.
 Here, we explore several different types of binary search trees.
 
@@ -78,7 +88,10 @@ the next insertion, deletion, or lookup is very close in coordinate space
 to the most recently accessed node. In sequential queries, one may need
 only to descend a single node from the root. This means for sequentially
 ordered operations, it can beat the perfectly balanced AVL tree. Random access,
-on the other hand, can be extremely poor.
+on the other hand, can be extremely poor. In this library, we introduce
+another uncommon optimization, the "probabilistic" splay tree. Randomizing
+the likelihood of performing the splay operation on read can substantially
+improve access times for some workloads. (Albers & Karpinski 2002)
 
 Implicit Interval Trees (IIT) store the entire tree in a compact linear array
 sorted by start position. They were created by Heng Li and implemented
@@ -87,9 +100,24 @@ and includes a "contig" parameter. The IIT structure excels at both sequential
 and random access, with the disadvantage that it must be reindexed (resorted)
 after any/all inserts or deletes, so it works best with static trees.
 
+
 Credits
 -------
 AVL tree based on attractivechaos' klib https://github.com/attractivechaos/klib
 Splay tree is my own implementation
 IITree is a D wrapper around Heng Li's cgranges C library, which is included as source
 https://github.com/lh3/cgranges
+
+
+References
+----------
+https://en.wikipedia.org/wiki/Interval_tree
+https://en.wikipedia.org/wiki/Red%E2%80%93black_tree
+https://en.wikipedia.org/wiki/AVL_tree
+https://en.wikipedia.org/wiki/Splay_tree
+https://github.com/lh3/cgranges
+
+http://www14.in.tum.de/personen/albers/papers/ipl02.pdf -- Albers & Karpinski
+doi: 10.1016/S0020-0190(01)00230-7
+
+https://github.com/blachlylab/swiftover/ -- Example library consumer
