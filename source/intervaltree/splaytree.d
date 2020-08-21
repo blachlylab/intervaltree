@@ -396,13 +396,21 @@ struct IntervalSplayTree(IntervalType)
     // NB if change to class, add 'final'
     /** Bring Node N to top of tree */
     @safe @nogc nothrow
-    private void splay(Node *n) 
+    private void splay(int bits=0)(Node *n) 
+    if (bits >= 0 && bits <= 8)
     {
         // probablistically splay:
         // Albers and Karpinski, Randomized splay trees: theoretical and experimental results
         // Information Processing Letters, Volume 81, Issue 4, 28 February 2002
         // http://www14.in.tum.de/personen/albers/papers/ipl02.pdf
-        if (rand!ubyte & 0b11110000) return;
+        
+        // Compute probability of returning early (skip splaying)
+        static if (bits > 0) {
+            // P_splay = 1/2^bits
+            // P_no_splay (return early) = 1 - 1/2^bits
+            ubyte q = ~(255 << bits) & 255;
+            if (rand!ubyte & q) return;
+        }
         
         while (n.parent !is null)
         {
@@ -459,7 +467,7 @@ struct IntervalSplayTree(IntervalType)
             else assert(0, "An unexpected inequality occurred");
         }
 
-        if (ret !is null) splay(ret);        // splay to the found node
+        if (ret !is null) splay!4(ret);        // splay to the found node
         // TODO: Benchmark with/without below condition
         //else if (prev !is null) splay(prev); // splay the last node searched before no result was found
 
@@ -563,9 +571,9 @@ struct IntervalSplayTree(IntervalType)
         version(instrument) _splaytree_visited ~= visited;
         // PERF: splay(current) without the branch led to marked performance degradation, > 10% worse runtime
         if (ret.length > 0)
-            splay(ret[0]);
+            splay!4(ret[0]);
         else
-            splay(current); // 3-5% runtime improvement
+            splay!4(current); // 3-5% runtime improvement
         return ret;
     }
 
