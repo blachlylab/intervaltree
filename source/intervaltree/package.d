@@ -3,10 +3,10 @@ module intervaltree;
 /// Interval with zero-based, half-open coordinates
 /// Any other Interval struct (or class?) OK
 /// as long as it contains "start" and "end"
-struct BasicInterval
+struct BasicInterval(T)
 {
-    int start;  /// zero-based half-open
-    int end;    /// zero-based half-open
+    T start;  /// zero-based half-open
+    T end;    /// zero-based half-open
 
     /// override the <, <=, >, >= operators; we'll use compiler generated default opEqual
     @safe
@@ -21,7 +21,7 @@ struct BasicInterval
     }
     /// override <, <=, >, >= to compare directly to int: compare only the start coordinate
     @nogc nothrow
-    int opCmp(const int other) const 
+    T opCmp(const T other) const 
     {
         return this.start - other;
     }
