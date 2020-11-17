@@ -463,7 +463,7 @@ struct IntervalAVLTree(IntervalType)
 
         if (n !is null)
         {
-            int localmax = n.interval.end;
+            auto localmax = n.interval.end;
             if (n.p[DIR.LEFT])
                 localmax = max(n.p[DIR.LEFT].max, localmax);
             if (n.p[DIR.RIGHT])

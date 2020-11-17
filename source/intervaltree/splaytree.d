@@ -659,7 +659,7 @@ struct IntervalSplayTree(IntervalType)
 
         if (n !is null)
         {
-            int localmax = n.interval.end;
+            auto localmax = n.interval.end;
             if (n.left)
                 localmax = max(n.left.max, localmax);
             if (n.right)
