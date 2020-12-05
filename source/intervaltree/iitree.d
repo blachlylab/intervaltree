@@ -89,9 +89,9 @@ if (__traits(hasMember, IntervalType, "start") &&
             if (trackGC) GC.addRange(i, IntervalType.sizeof, typeid(IntervalType));
 
         static if (isSomeString!S)
-            return cr_add(this.cr, toStringz(contig), i.start, i.end, 0, i);
+            return cr_add(this.cr, toStringz(contig), cast(int) i.start, cast(int) i.end, 0, i);
         else
-            return cr_add(this.cr, contig, i.start, i.end, 0, i);
+            return cr_add(this.cr, contig, cast(int) i.start, cast(int) i.end, 0, i);
     }
     /// ditto
     cr_intv_t* insert(S)(S contig, IntervalType i, bool trackGC = true)
@@ -103,9 +103,9 @@ if (__traits(hasMember, IntervalType, "start") &&
         if (trackGC) GC.addRange(iheap, IntervalType.sizeof, typeid(IntervalType));
         
         static if (isSomeString!S)
-            return cr_add(this.cr, toStringz(contig), i.start, i.end, 0, iheap);
+            return cr_add(this.cr, toStringz(contig), cast(int) i.start, cast(int) i.end, 0, iheap);
         else
-            return cr_add(this.cr, contig, i.start, i.end, 0, iheap);
+            return cr_add(this.cr, contig, cast(int) i.start, cast(int) i.end, 0, iheap);
     }
     /// ditto
     cr_intv_t* insert(I)(I i, bool trackGC = true)
@@ -115,9 +115,10 @@ if (__traits(hasMember, IntervalType, "start") &&
         return insert(contig, i, trackGC);
     }
     /// ditto
-    cr_intv_t* insert(const(char)* contig, int start, int end)
+    cr_intv_t* insert(T)(const(char)* contig, T start, T end)
+    if (is(T == int) || is(T == uint) || is(T == long) || is(T == ulong))
     {
-        return cr_add(this.cr, contig, start, end, 0, null);
+        return cr_add(this.cr, cast(int) contig, cast(int) start, end, 0, null);
     }
 
     /// Index the data structure -- required after all inserts completed, before query
@@ -147,7 +148,8 @@ if (__traits(hasMember, IntervalType, "start") &&
         return findOverlapsWith(toStringz(contig), qinterval.start, qinterval.end);
     }
     /// ditto
-    const(cr_intv_t)[] findOverlapsWith(const(char)* contig, int start, int end)
+    const(cr_intv_t)[] findOverlapsWith(T)(const(char)* contig, T start, T end)
+    if (is(T == int) || is(T == uint) || is(T == long) || is(T == ulong))
     {
         debug
         {
@@ -161,7 +163,7 @@ if (__traits(hasMember, IntervalType, "start") &&
         // TODO should move to struct level then free(b) in destructor
         static int64_t *b;
         static int64_t m_b;
-        const auto n_b = cr_overlap(this.cr, contig, start, end, &b, &m_b);
+        const auto n_b = cr_overlap(this.cr, contig, cast(int) start, cast(int) end, &b, &m_b);
         if (!n_b) return [];
 
         if (n_b == 1)
