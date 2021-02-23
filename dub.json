@@ -10,5 +10,14 @@
 	},
 	"sourceFiles": [ "source/cgranges.o" ],
 	"excludedSourceFiles": ["source/intervaltree/roundup.d"],
-    "preBuildCommands": ["cd $PACKAGE_DIR; make source/cgranges.o"]
+    "configurations": [
+        {
+            "name": "default",
+            "preBuildCommands": ["cd $PACKAGE_DIR; make clean; make source/cgranges.o"]
+        },
+        {
+            "name": "instrument-iitree",
+            "preBuildCommands": ["cd $PACKAGE_DIR; make clean; INSTRUMENT=-DINSTRUMENT make source/cgranges.o"]
+        }
+    ]
 }

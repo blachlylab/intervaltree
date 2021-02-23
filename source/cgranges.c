@@ -4,6 +4,7 @@
 #include "khash.h"
 
 #ifdef INSTRUMENT
+#pragma message "Instrumented cgranges build"
 int64_t _iitree_visited_size = 0;
 int64_t _iitree_visited_capacity = 0;
 int32_t *_iitree_visited = NULL;
